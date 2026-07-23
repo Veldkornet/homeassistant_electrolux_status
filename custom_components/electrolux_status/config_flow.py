@@ -159,9 +159,12 @@ class ElectroluxStatusFlowHandler(ConfigFlow, domain=DOMAIN):
 class ElectroluxStatusOptionsFlowHandler(OptionsFlow):
     """Config flow options handler for Electrolux Status."""
 
-    def __init__(self, config_entry) -> None:
+    def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize HACS options flow."""
-        self.config_entry = config_entry
+        # In HA 2026.x+, OptionsFlow.config_entry is a read-only property managed
+        # by the base class — assigning to it raises AttributeError. Store our own
+        # reference privately for data access throughout this flow.
+        self._config_entry = config_entry
         self.options = dict(config_entry.options)
 
     async def async_step_init(self, user_input=None) -> ConfigFlowResult:
@@ -174,12 +177,12 @@ class ElectroluxStatusOptionsFlowHandler(OptionsFlow):
             self.options.update(user_input)
             return await self._update_options()
 
-        selected_language = self.config_entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
-        current_password = self.config_entry.data.get(CONF_PASSWORD, None)
-        current_country_code = self.config_entry.data.get(CONF_COUNTRY_CODE, None)
-        notify_alert = self.config_entry.data.get(CONF_NOTIFICATION_DEFAULT, True)
-        notify_warning = self.config_entry.data.get(CONF_NOTIFICATION_WARNING, False)
-        notify_diagnostic = self.config_entry.data.get(CONF_NOTIFICATION_DIAG, False)
+        selected_language = self._config_entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE)
+        current_password = self._config_entry.data.get(CONF_PASSWORD, None)
+        current_country_code = self._config_entry.data.get(CONF_COUNTRY_CODE, None)
+        notify_alert = self._config_entry.data.get(CONF_NOTIFICATION_DEFAULT, True)
+        notify_warning = self._config_entry.data.get(CONF_NOTIFICATION_WARNING, False)
+        notify_diagnostic = self._config_entry.data.get(CONF_NOTIFICATION_DIAG, False)
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
@@ -228,7 +231,7 @@ class ElectroluxStatusOptionsFlowHandler(OptionsFlow):
         """Update config entry options."""
         _LOGGER.debug("Electrolux updating configuration")
         data = {
-            **self.config_entry.data,
+            **self._config_entry.data,
             CONF_PASSWORD: self.options[CONF_PASSWORD],
             CONF_COUNTRY_CODE: self.options[CONF_COUNTRY_CODE],
             CONF_LANGUAGE: self.options[CONF_LANGUAGE],
@@ -236,8 +239,8 @@ class ElectroluxStatusOptionsFlowHandler(OptionsFlow):
             CONF_NOTIFICATION_WARNING: self.options[CONF_NOTIFICATION_WARNING],
             CONF_NOTIFICATION_DIAG: self.options[CONF_NOTIFICATION_DIAG],
         }
-        self.hass.config_entries.async_update_entry(self.config_entry, data=data)
+        self.hass.config_entries.async_update_entry(self._config_entry, data=data)
         return self.async_create_entry(
-            title=self.config_entry.data.get(CONF_USERNAME),
+            title=self._config_entry.data.get(CONF_USERNAME),
             data=data,
         )
